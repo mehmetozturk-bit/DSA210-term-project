@@ -1,48 +1,80 @@
-# Quantifying Home Field Advantage in the English Premier League
 
-
----
-
-## 1. Project Proposal & Motivation
-
-This project is for the DSA 210 Fall 2025-2026 term. The "home-field advantage" (HFA) is a widely accepted phenomenon in team sports, where teams are statistically more likely to win when playing at their home venue.
-
-The motivation for this project is to move beyond simply acknowledging HFA's existence and to quantify its impact within the English Premier League (EPL), one of the world's most-watched sports leagues.
-
-This project will follow the full data science pipeline to answer three primary questions:
-* How strong is the home-field advantage in the EPL, measured by win percentage and goal difference?
-* Has the strength of the HFA changed over time (e.g., before and after the introduction of VAR, or during the 2020-2021 "COVID" season played in empty stadiums)?
-* Which factors, if any, correlate with a stronger HFA? (e.g., stadium capacity).
+#Quantifying Home-Field Advantage in the English Premier League
 
 ---
 
-## 2. Data Sources and Collection Plan
+## 1. Motivation & Problem Statement
 
-This project will use publicly available data and will satisfy the enrichment requirement by combining two distinct datasets.
+In competitive team sports, the "Home-Field Advantage" (HFA) is a widely discussed phenomenon. However, quantifying its magnitude and identifying its drivers requires rigorous statistical analysis rather than anecdotal evidence.
 
-### Main Dataset: EPL Match Results
-* **Data Source:** Kaggle. A comprehensive dataset containing match-by-match results for the English Premier League, ideally spanning from the early 2000s to the present day.
-* **Collection Plan:** This dataset (typically a single `.csv` file) will be downloaded directly from Kaggle and stored within this GitHub repository. It is expected to contain columns such as `Date`, `HomeTeam`, `AwayTeam`, `FTHG` (Full Time Home Goals), and `FTAG` (Full Time Away Goals).
-
-### Enrichment Dataset: EPL Stadium Information
-* **Data Source:** Kaggle or other public sources (e.g., Wikipedia). This dataset will link each EPL team to its home stadium.
-* **Collection Plan:** A secondary `.csv` file will be sourced or manually created that lists each unique team in the main dataset and its corresponding `Stadium_Name` and `Stadium_Capacity`. This file will be used to merge with the main match results data.
+The objective of this project is to analyze **25 years of English Premier League (EPL) data** to determine:
+1.  **Existence:** Is the point differential between home and away games statistically significant?
+2.  **Crowd Effect:** Did the "Closed Doors" (Ghost Games) policy during the COVID-19 pandemic (2020-2021 season) significantly reduce the home advantage?
+3.  **Drivers:** Can we predict a home win based on external factors like stadium capacity and team form?
 
 ---
 
-## 3. Initial Analysis Plan
+## 2. Verified Data Sources
 
-This section outlines the planned steps to meet future project deadlines.
+The project utilizes two specific, publicly available datasets which have been identified and inspected.
 
-* **By 28 November (EDA & Hypothesis Tests):**
-    1.  **Data Cleaning:** Merge the two datasets. Handle any missing values.
-    2.  **Feature Engineering:** Create new columns: `Home_Win` (1 or 0), `Goal_Difference` (Home Goals - Away Goals), and `Season`.
-    3.  **EDA:** Visualize the overall home win percentage. Plot the average `Goal_Difference` per season to observe trends.
-    4.  **Hypothesis Test:** Conduct a t-test to determine if the mean `Goal_Difference` for home games is statistically greater than zero.
+### Dataset 1: Main Match Data (Time-Series)
+* **Source:** [English Premier League (EPL) Match Data 2000-2025 (Kaggle)](https://www.kaggle.com/datasets/marcohuiii/english-premier-league-epl-match-data-2000-2025)
+* **Content:** This dataset contains **9,000+ match records** spanning from the 2000-2001 season to the present.
+* **Key Attributes Identified:**
+    * `Date` (Temporal analysis)
+    * `HomeTeam` / `AwayTeam` (Categorical identifiers)
+    * `FTHG` (Full Time Home Goals) / `FTAG` (Full Time Away Goals)
+    * `FTR` (Full Time Result: 'H', 'A', 'D')
 
-* **By 02 January (Machine Learning):**
-    1.  **Model Selection:** Implement a Logistic Regression model to predict the `Home_Win` outcome (a binary classification problem).
-    2.  **Feature Selection:** Use features like `Stadium_Capacity` (from the enrichment data) and potentially the relative league standing of the teams.
-    3.  **Analysis:** Analyze the model's coefficients to determine which factors are significant predictors of a home win, thereby quantifying their contribution to the "home-field advantage."
+### Dataset 2: Enrichment Data (Stadium Metadata)
+* **Source:** [Football Stadiums Dataset (Kaggle)](https://www.kaggle.com/datasets/antimoni/football-stadiums)
+* **Enrichment Strategy:**
+    * I will merge this dataset with the main match data on the `Team Name` key.
+    * This adds the **`Capacity`** (integer) feature to every match row, allowing me to test the correlation between crowd size and win probability.
 
-All code will be written in Python and all dependencies will be listed in a `requirements.txt` file.
+---
+
+## 3. Formal Hypotheses
+
+I will conduct the following specific statistical tests:
+
+### Hypothesis 1: The General Home Advantage
+* **Null Hypothesis ($H_0$):** There is no significant difference between the mean points earned at home ($\mu_{home}$) and the mean points earned away ($\mu_{away}$). ($\mu_{home} = \mu_{away}$)
+* **Alternative Hypothesis ($H_1$):** Teams earn significantly more points at home. ($\mu_{home} > \mu_{away}$)
+* **Test:** Paired T-Test (alpha = 0.05).
+
+### Hypothesis 2: The "Ghost Game" Effect (COVID-19)
+* **Null Hypothesis ($H_0$):** The Home Win Percentage during the 2020-2021 (no crowd) season is equal to the historical average Home Win Percentage.
+* **Alternative Hypothesis ($H_1$):** The Home Win Percentage in 2020-2021 is significantly lower than the historical average.
+* **Test:** Chi-Square Test for Independence / Z-test for proportions.
+
+---
+
+## 4. Technical Approach & Methodology
+
+### Phase 1: Data Processing (By Nov 28)
+* **Cleaning:** Handle standard naming inconsistencies (e.g., "Man Utd" vs "Manchester United") to ensure a clean merge between the Match and Stadium datasets.
+* **Feature Engineering:**
+    * `Goal_Diff`: $FTHG - FTAG$
+    * `Is_Covid`: Boolean flag for matches played behind closed doors.
+    * `Points_Home`: Derived from FTR (3 for Win, 1 for Draw, 0 for Loss).
+
+### Phase 2: Machine Learning (By Jan 02)
+I will treat this as a **Binary Classification Problem** (Predicting Target: `Home_Win` = 1/0).
+
+* **Models:**
+    * **Logistic Regression:** To establish a baseline and interpret coefficients (e.g., how much does 10,000 extra capacity increase win odds?).
+    * **Random Forest Classifier:** To capture non-linear relationships between team rankings and match outcomes.
+* **Features:** `Stadium_Capacity`, `Home_Team_Rolling_Avg_Goals`, `Away_Team_Rolling_Avg_Goals`, `Season`.
+* **Evaluation Metrics:** Accuracy, Precision, Recall, and ROC-AUC Score.
+
+---
+
+## 5. Tools
+
+* **Python:** Primary language.
+* **Pandas:** For data merging and time-series manipulation.
+* **SciPy / Statsmodels:** For conducting the T-tests and Chi-Square tests.
+* **Scikit-learn:** For Logistic Regression and Random Forest implementation.
+* **Matplotlib/Seaborn:** For visualizing goal distributions and win rates.
